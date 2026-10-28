@@ -1,0 +1,11 @@
+{
+ "schemaVersion":1,
+ "id":"icd.celtic-audio",
+ "name":"Celtic Audio",
+ "version":"0.2.0",
+ "author":"LocalTools",
+ "description":"CelticPlayer audio controls beside the world clock",
+ "kinds":["bar-widget"],
+ "entryPoints":{"barWidget":"BarWidget.qml"},
+ "barWidget":{"displayName":"Celtic Audio","description":"Open and control CelticPlayer audio","category":"Audio","allowMultiple":false,"defaultSection":"centerEnd"}
+}

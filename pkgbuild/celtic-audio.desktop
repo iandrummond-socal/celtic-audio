@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Celtic Audio
+Comment=Listen to CelticPlayer with desktop media controls
+Comment[da]=Lyt til CelticPlayer med skrivebordets medietaster
+Exec=celtic-audio --show
+Icon=celtic-audio
+Terminal=false
+Categories=AudioVideo;Audio;Player;
+StartupWMClass=celtic-audio

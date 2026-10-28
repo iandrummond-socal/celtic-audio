@@ -1,0 +1,1 @@
+<RCC><qresource prefix="/"><file>Main.qml</file><file alias="icon.svg">../pkgbuild/celtic-audio.svg</file><file>test.html</file><file alias="tone.wav">../tests/tone.wav</file><file>i18n/da.json</file></qresource></RCC>

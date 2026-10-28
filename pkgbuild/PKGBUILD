@@ -1,0 +1,23 @@
+pkgname=celtic-audio
+pkgver=0.2.0
+pkgrel=1
+pkgdesc='CelticPlayer desktop audio with MPRIS controls'
+arch=('x86_64' 'aarch64')
+license=('MIT')
+depends=('qt6-base' 'qt6-declarative' 'qt6-webengine>=6.8' 'qt6-wayland' 'qt6-svg')
+makedepends=('gcc' 'make')
+source=()
+sha256sums=()
+build() {
+ cd "$startdir/.."
+ ./bin/build
+}
+package() {
+ cd "$startdir/.."
+ install -d "$pkgdir/usr/share/celtic-audio/omarchy"
+ cp -r omarchy/icd.celtic-audio "$pkgdir/usr/share/celtic-audio/omarchy/"
+ install -Dm755 build/celtic-audio "$pkgdir/usr/bin/celtic-audio"
+ install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+ install -Dm644 pkgbuild/celtic-audio.svg "$pkgdir/usr/share/icons/hicolor/scalable/apps/celtic-audio.svg"
+ install -Dm644 pkgbuild/celtic-audio.desktop "$pkgdir/usr/share/applications/celtic-audio.desktop"
+}

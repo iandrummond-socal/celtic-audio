@@ -1,0 +1,10 @@
+#!/bin/sh
+set -eu
+
+ROOT="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
+mkdir -p "$ROOT/build/tests"
+cd "$ROOT/build/tests"
+
+qmake6 "$ROOT/tests/celtic-audio_tests.pro"
+make -j2
+QT_QPA_PLATFORM=offscreen QT_QPA_PLATFORMTHEME=generic ./celtic-audio_tests
