@@ -1,7 +1,21 @@
 #!/bin/sh
 set -eu
-
 ROOT="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
-"$ROOT/bin/build"
+if [ "$(id -u)" -eq 0 ]; then
+  echo 'Run ./bin/install as your desktop user, without sudo.' >&2
+  exit 1
+fi
+if ! command -v pacman >/dev/null || ! command -v makepkg >/dev/null; then
+  echo 'This installer requires Omarchy/Arch Linux with pacman and makepkg.' >&2
+  exit 1
+fi
+if [ ! -f "${XDG_CONFIG_HOME:-$HOME/.config}/omarchy/shell.json" ]; then
+  echo 'Omarchy shell.json was not found. This installer requires the Quickshell-based Omarchy bar.' >&2
+  exit 1
+fi
+# Bootstrap the packaging toolchain before makepkg resolves the Qt dependencies.
+sudo pacman -S --needed base-devel python
 cd "$ROOT/pkgbuild"
-exec makepkg -fsi "$@"
+makepkg -fsi "$@"
+"$ROOT/bin/install-widget"
+echo 'Installed. Click the headphone icon beside your world clock, or launch Celtic Audio.'

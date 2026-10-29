@@ -3,3 +3,6 @@
 /pkgbuild/src/
 *.pkg.tar.*
 test-preview.png
+
+__pycache__/
+*.pyc

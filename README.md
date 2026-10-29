@@ -46,25 +46,94 @@ Start playback on the site once so the browser's user-gesture requirement is met
 The shell follows Omarchy's accent, window rounding and language selection live.
 English and a partial Danish catalog are included; missing translations fall
 back to English. CelticPlayer's own interface is controlled by the site.
-No Omarchy configuration is changed.
+The widget installer updates only its own entry in your Omarchy bar layout;
+existing widgets and settings are preserved, with backups made before changes.
 
-## Build and install
+## Install on Omarchy
+
+Requires **Arch-based Omarchy with the Quickshell bar**, an internet connection,
+and sudo access for package installation. The older Waybar-based Omarchy bar
+is not supported. You also need a CelticPlayer subscription with access to the
+stream you select.
+
+Open a terminal and run:
+
+```sh
+sudo pacman -S --needed git
+git clone https://github.com/iandrummond-socal/celtic-audio.git
+cd celtic-audio
+./bin/install
+```
+
+Run the installer as your normal desktop user, **without sudo**. It asks for
+sudo when installing packages. Review and accept the pacman prompts.
+
+The installer:
+
+1. Installs the build tools and Python, then lets `makepkg` install the required
+   Qt dependencies and build/install the `celtic-audio` Arch package.
+2. Copies the included menu bar widget into your user Omarchy plugin directory.
+3. Places its headphone button immediately after **Elsewhen**, the world clock.
+   If Elsewhen is absent, the button goes at the start of `centerEnd`, beside
+   the center clock. Existing widgets keep their settings and relative order.
+4. Backs up your bar configuration and any previous copy of this widget under
+   `~/.config/omarchy/celtic-audio-backups/` before making changes. Custom
+   `XDG_CONFIG_HOME` locations are supported.
+
+The bar reloads automatically. Click the **headphone icon → Open player**, sign
+in on CelticPlayer, and start commentary. You can close the player window and
+keep listening. Use **Quit Celtic Audio** in the bar popup to stop the app.
+The icon is available after login; it launches the player on demand.
+
+### Update
+
+From your cloned repository:
+
+```sh
+git pull --ff-only
+./bin/install
+```
+
+Quit the running app from its bar popup before updating, then reopen it.
+Repeating the installer updates the widget without adding duplicate bar icons.
+It replaces the widget's files, so keep any personal widget changes separately;
+the installer also saves the previous copy in its backup directory.
+
+### Repair or remove the bar widget
+
+To reinstall just the widget and its layout entry without rebuilding the app:
+
+```sh
+./bin/install-widget
+```
+
+To uninstall:
+
+```sh
+./bin/install-widget --remove
+sudo pacman -R celtic-audio
+```
+
+Quit the app first. Removal affects only this widget and its bar entries.
+Your CelticPlayer profile and installer backups are retained. The profile lives
+in Qt's standard application data/cache locations under `LocalTools/celtic-audio`.
+If widget setup fails after the package installed, correct the reported issue
+and rerun `./bin/install-widget`. Invalid bar JSON is left untouched.
+
+### Build or test without installing
 
 ```sh
 ./bin/build
 ./bin/test
-./bin/install
 ```
 
-The installer builds an Arch package and uses pacman through makepkg to install
-it. Dependencies are listed in `pkgbuild/PKGBUILD`. The source uses Qt WebEngine
-frame APIs available since Qt 6.8. Build artifacts stay in `build/`.
-
-Uninstall with `sudo pacman -R celtic-audio`. Profile data is retained in Qt's
-standard application data/cache locations under `LocalTools/celtic-audio`.
+Dependencies are listed in `pkgbuild/PKGBUILD`; tests also need Python 3.
+The source requires Qt WebEngine 6.8 or newer. Build artifacts stay in `build/`.
 
 ## Validation
 
+- Eight installer tests cover preservation, backups, repeat installs, removal,
+  missing world clocks, malformed configuration and symlink protection.
 - Seven Qt Test checks pass, covering observed playback state, command gating,
   volume bounds, theme loading and Danish translation.
 - Exercised actual D-Bus Play, Pause, PlayPause, Stop and Volume against local

@@ -1,0 +1,118 @@
+#!/usr/bin/env python3
+"""Install the Celtic Audio widget without replacing other Omarchy settings."""
+import argparse
+import json
+import os
+from pathlib import Path
+import shutil
+import sys
+import tempfile
+from datetime import datetime, timezone
+
+WIDGET = 'icd.celtic-audio'
+
+
+def entry_id(entry):
+    return entry.get('id') if isinstance(entry, dict) else entry
+
+
+def configure(config, remove=False):
+    """Return a new layout with exactly one widget, or none when removing."""
+    config = json.loads(json.dumps(config))
+    bar = config.setdefault('bar', {})
+    layout = bar.setdefault('layout', {})
+    if not isinstance(layout, dict):
+        raise ValueError('bar.layout must be an object')
+    for key, entries in layout.items():
+        if not isinstance(entries, list):
+            raise ValueError('bar.layout.%s must be an array' % key)
+        layout[key] = [e for e in entries if entry_id(e) != WIDGET]
+    if not remove:
+        section = layout.setdefault('centerEnd', [])
+        index = next((i + 1 for i, e in enumerate(section)
+                      if entry_id(e) == 'omarchy.elsewhen'), 0)
+        section.insert(index, {'id': WIDGET})
+    for key in ('plugins', 'disabledPlugins'):
+        if key in config:
+            if not isinstance(config[key], list):
+                raise ValueError('%s must be an array' % key)
+            # The layout enables this widget; remove stale entries for it only.
+            config[key] = [e for e in config[key] if entry_id(e) != WIDGET]
+    return config
+
+
+def install(config_home, source, remove=False):
+    shell = config_home / 'omarchy/shell.json'
+    if not shell.is_file():
+        raise ValueError('Omarchy shell config not found: %s' % shell)
+    original = shell.read_text()
+    config = json.loads(original)
+    if not isinstance(config, dict):
+        raise ValueError('shell.json must contain a JSON object')
+    updated = configure(config, remove)
+    if not remove:
+        manifest = json.loads((source / 'manifest.json').read_text())
+        if manifest.get('id') != WIDGET or not (source / 'BarWidget.qml').is_file():
+            raise ValueError('Widget source is incomplete or has the wrong ID')
+    plugins = config_home / 'omarchy/plugins'
+    plugins.mkdir(parents=True, exist_ok=True)
+    target = plugins / WIDGET
+    if target.is_symlink():
+        raise ValueError('Refusing to replace a symlink: %s' % target)
+    # Keep backups outside the scanned plugin directory so they cannot load twice.
+    backups = config_home / 'omarchy/celtic-audio-backups'
+    backups.mkdir(parents=True, exist_ok=True)
+    stamp = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S.%fZ')
+    backup = backups / stamp
+    backup.mkdir()
+    shutil.copy2(shell, backup / 'shell.json')
+    if target.exists():
+        shutil.copytree(target, backup / WIDGET)
+    staged = Path(tempfile.mkdtemp(prefix='.celtic-audio-', dir=plugins))
+    fd, temp_name = tempfile.mkstemp(prefix='.shell-celtic-', dir=shell.parent)
+    try:
+        if not remove:
+            shutil.copytree(source, staged / WIDGET)
+        with os.fdopen(fd, 'w') as output:
+            output.write(json.dumps(updated, indent=2) + '\n')
+        os.chmod(temp_name, shell.stat().st_mode & 0o777)
+        if target.exists():
+            shutil.rmtree(target)
+        if not remove:
+            os.replace(staged / WIDGET, target)
+        os.replace(temp_name, shell)
+    except Exception:
+        # Restore the exact settings and prior widget if a write fails.
+        shutil.copy2(backup / 'shell.json', shell)
+        if target.exists():
+            shutil.rmtree(target)
+        if (backup / WIDGET).exists():
+            shutil.copytree(backup / WIDGET, target)
+        raise
+    finally:
+        shutil.rmtree(staged, ignore_errors=True)
+        Path(temp_name).unlink(missing_ok=True)
+    return backup
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--remove', action='store_true', help='Remove only this widget and its bar entries')
+    args = parser.parse_args()
+    if os.geteuid() == 0:
+        parser.error('Run as your desktop user, without sudo.')
+    home = Path(os.environ.get('XDG_CONFIG_HOME', str(Path.home() / '.config')))
+    source = Path(__file__).resolve().parent.parent / 'omarchy' / WIDGET
+    try:
+        backup = install(home, source, args.remove)
+    except (OSError, ValueError, TypeError) as error:
+        print('Widget setup failed: %s' % error, file=sys.stderr)
+        return 1
+    print('Widget removed.' if args.remove else 'Widget installed beside Elsewhen (or next to the center clock if Elsewhen is absent).')
+    print('Backup: %s' % backup)
+    print('Omarchy reloads the bar automatically.')
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())
